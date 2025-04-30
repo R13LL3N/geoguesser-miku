@@ -1,29 +1,69 @@
-// Handle file upload to Netlify
-async function uploadImage(file, metadata) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('metadata', JSON.stringify(metadata));
+// Handles image upload and cloud storage operations
+class CloudStorage {
+    constructor() {
+        this.uploadEndpoint = '/api/upload-image';
+    }
 
-    try {
+    // Upload a file with metadata
+    async uploadImage(file, metadata) {
         const token = localStorage.getItem('authToken');
-        const response = await fetch('/api/upload-image', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Upload failed');
+        if (!token) {
+            throw new Error('Authentication required');
         }
 
-        return await response.json();
-    } catch (error) {
-        throw new Error('Error uploading image: ' + error.message);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('metadata', JSON.stringify(metadata));
+
+        try {
+            const response = await fetch(this.uploadEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Upload failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Upload error:', error);
+            throw error;
+        }
+    }
+
+    // Validate file before upload
+    validateFile(file) {
+        // Check file type
+        if (!file.type.startsWith('image/')) {
+            throw new Error('Only image files are allowed');
+        }
+
+        // Check file size (max 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        if (file.size > maxSize) {
+            throw new Error('File size must be less than 5MB');
+        }
+
+        return true;
+    }
+
+    // Format file size for display
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 }
+
+// Export a singleton instance
+window.cloudStorage = new CloudStorage();
 
 // Handle image submission form
 if (document.getElementById('submit-form')) {
@@ -68,14 +108,14 @@ if (document.getElementById('submit-form')) {
     function handleFileSelect(event) {
         const file = event.target.files[0];
         if (file) {
-            if (!file.type.startsWith('image/')) {
-                alert('Please upload an image file');
-                return;
+            try {
+                window.cloudStorage.validateFile(file);
+                fileName.textContent = `${file.name} (${window.cloudStorage.formatFileSize(file.size)})`;
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('hidden');
+            } catch (error) {
+                alert(error.message);
             }
-
-            fileName.textContent = file.name;
-            preview.src = URL.createObjectURL(file);
-            preview.classList.remove('hidden');
         }
     }
 
@@ -111,7 +151,7 @@ if (document.getElementById('submit-form')) {
                 submitterName: localStorage.getItem('username')
             };
 
-            await uploadImage(file, metadata);
+            await window.cloudStorage.uploadImage(file, metadata);
             alert('Image uploaded successfully!');
             form.reset();
             preview.classList.add('hidden');
