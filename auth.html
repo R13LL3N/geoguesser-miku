@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login/Signup - Geoguesser Miku</title>
+    <link rel="stylesheet" href="./style.css">
+    <!-- Load dependencies first -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Initialize supabase -->
+    <script>
+        window.supabaseUrl = 'https://fwrgisesmzdwclaclptu.supabase.co';
+        window.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3cmdpc2VzbXpkd2NsYWNscHR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3MjM2OTcsImV4cCI6MjA2MTI5OTY5N30.pJ_E7BXerv9nuXDd7MnHt4ncQ0CG2qHlD0baugQoiHo';
+        window.supabaseClient = supabase.createClient(window.supabaseUrl, window.supabaseKey);
+    </script>
+    <!-- Load our scripts after Supabase is initialized -->
+    <script src="./cloud-storage.js" defer></script>
+    <script src="./auth-check.js" defer></script>
+    <script src="./auth.js" defer></script>
+</head>
+<body>
+    <header></header>
+        <h1>Geoguesser Miku</h1>
+        <nav>
+            <a href="./index.html">Play Game</a>
+            <a href="./submit.html">Submit Miku</a>
+        </nav>
+    </header>
+
+    <main class="auth-container">
+        <div class="form-container" id="login-form">
+            <h2>Login</h2>
+            <form>
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <p class="form-toggle">Don't have an account? <a href="#" id="show-signup">Sign up</a></p>
+        </div>
+
+        <div class="form-container" id="signup-form" style="display: none;">
+            <h2>Sign Up</h2>
+            <form>
+                <input type="text" id="signup-username" placeholder="Username" required>
+                <input type="email" id="signup-email" placeholder="Email" required>
+                <input type="password" id="signup-password" placeholder="Password" required minlength="6">
+                <input type="password" id="signup-confirm-password" placeholder="Confirm Password" required minlength="6">
+                <button type="submit">Sign Up</button>
+            </form>
+            <p class="form-toggle">Already have an account? <a href="#" id="show-login">Login</a></p>
+        </div>
+    </main>
+
+    <footer>
+        <p>Created with ♥ for Miku fans</p>
+    </footer>
+</body>
+</html>

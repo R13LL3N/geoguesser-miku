@@ -1,0 +1,692 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    transition: all 0.2s ease;
+}
+
+body {
+    background-color: #f0f0f0;
+}
+
+header {
+    background-color: #39c5bb;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 0 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: transform 0.2s, background-color 0.3s;
+}
+
+nav a:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.user-welcome {
+    color: white;
+    margin-right: 1rem;
+    font-weight: bold;
+}
+
+#logout-btn {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+#logout-btn:hover {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+
+main {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.game-container {
+    text-align: center;
+}
+
+.miku-display {
+    margin: 2rem 0;
+}
+
+.miku-display img {
+    max-width: 100%;
+    max-height: 500px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.8s ease-out;
+}
+
+.guess-section {
+    margin: 2rem 0;
+    position: relative;
+    z-index: 1;
+    animation: slideIn 0.6s ease-out;
+}
+
+.guess-input-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.guess-input {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.guess-input input {
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    min-width: 250px;
+    font-size: 1rem;
+    background-color: white !important;
+}
+
+.guess-input input:focus {
+    outline: 2px solid #39c5bb;
+    border-color: transparent;
+}
+
+button {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 5px;
+    background-color: #39c5bb;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.3s;
+}
+
+button:hover {
+    background-color: #2ea89f;
+    transform: scale(1.05);
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+.guess-input button, #next-miku {
+    min-width: 120px;
+}
+
+.auth-container {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.form-container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    min-width: 300px;
+    max-width: 400px;
+    margin: 1rem;
+}
+
+.form-container h2 {
+    color: #39c5bb;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.form-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-container input {
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-container input:focus {
+    outline: none;
+    border-color: #39c5bb;
+    box-shadow: 0 0 0 2px rgba(57, 197, 187, 0.2);
+}
+
+.form-container button {
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    transition: transform 0.2s, background-color 0.3s;
+}
+
+.form-container button:hover {
+    transform: translateY(-2px);
+}
+
+.form-toggle {
+    margin-top: 1rem;
+    text-align: center;
+    color: #666;
+}
+
+.form-toggle a {
+    color: #39c5bb;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.form-toggle a:hover {
+    text-decoration: underline;
+}
+
+#login-error,
+#signup-error {
+    margin-top: 1rem;
+    padding: 0.8rem;
+    border-radius: 5px;
+    background-color: #fff5f5;
+    border: 1px solid #feb2b2;
+    color: #c53030;
+    font-size: 0.9rem;
+    animation: fadeIn 0.3s ease-in;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+input, select {
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+#miku-ethnicity {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+#miku-ethnicity:focus {
+    outline: 2px solid #39c5bb;
+    border-color: transparent;
+}
+
+.submit-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.hidden {
+    display: none;
+}
+
+.login-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+}
+
+.preview {
+    margin: 1.5rem 0;
+    text-align: center;
+}
+
+.preview img {
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+}
+
+.preview img:hover {
+    transform: scale(1.1);
+}
+
+.submission-details {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin: 1.5rem auto;
+    max-width: 500px;
+    animation: fadeIn 0.6s ease-out;
+}
+
+.submission-details h3 {
+    color: #39c5bb;
+    margin-bottom: 1rem;
+}
+
+.submission-details p {
+    margin: 0.5rem 0;
+}
+
+.submission-details span {
+    font-weight: bold;
+    color: #333;
+}
+
+.artist-credit-group {
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 5px;
+}
+
+.checkbox-group {
+    margin-bottom: 1rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+#artist-credit-field {
+    margin-top: 1rem;
+}
+
+footer {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.game-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.game-section {
+    flex: 1;
+    min-width: 0; /* Prevents flex item from overflowing */
+}
+
+.leaderboard-section {
+    width: 300px;
+    position: sticky;
+    top: 2rem;
+}
+
+.leaderboard {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.leaderboard h2 {
+    color: #39c5bb;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+    transition: transform 0.2s, background-color 0.3s;
+}
+
+.leaderboard-item:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-item:hover {
+    background-color: #f5f5f5;
+    transform: translateX(5px);
+}
+
+.leaderboard-rank {
+    font-weight: bold;
+    color: #39c5bb;
+    display: inline-block;
+    width: 30px;
+}
+
+.leaderboard-name {
+    flex: 1;
+    margin: 0 1rem;
+}
+
+.leaderboard-name.current-user {
+    color: #39c5bb;
+    font-weight: bold;
+}
+
+.result-correct {
+    animation: pulse 0.5s ease-in-out;
+    color: green;
+}
+
+.result-wrong {
+    animation: shake 0.5s ease-in-out;
+    color: red;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+h1 {
+    position: relative;
+    animation: bounce 2s infinite;
+}
+
+.country-input-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.country-suggestions {
+    position: absolute;
+    top: calc(100% - 1rem);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0 0 5px 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+.country-suggestion {
+    padding: 0.8rem 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.country-suggestion:hover,
+.country-suggestion.selected {
+    background-color: #f0f8ff;
+    color: #39c5bb;
+    transform: translateX(5px);
+}
+
+.file-hint {
+    display: block;
+    color: #666;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+/* Add styles for storage management section */
+.storage-management {
+    margin: 2rem 0;
+    padding: 1rem;
+    background-color: #f8f8f8;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.storage-hint {
+    display: block;
+    color: #666;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.danger-button {
+    background-color: #dc3545;
+}
+
+.danger-button:hover {
+    background-color: #c82333;
+}
+
+/* Add styles for upload progress bar */
+.upload-progress {
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #39c5bb;
+    width: 0;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Add styles for file input and preview */
+.file-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.file-name {
+    margin-left: 1rem;
+    color: #666;
+}
+
+#image-preview {
+    max-width: 300px;
+    margin-top: 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#image-preview.hidden {
+    display: none;
+}
+
+#image-preview:hover {
+    transform: scale(1.05);
+}
+
+.upload-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.upload-button:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+}
+
+.upload-button:active {
+    transform: translateY(0);
+}
+
+/* Add styles for drag and drop zone */
+.upload-container {
+    margin-bottom: 1rem;
+}
+
+.drop-zone {
+    width: 100%;
+    height: 200px;
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 1rem 0;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: #4CAF50;
+}
+
+.drop-zone-text {
+    color: #666;
+    text-align: center;
+}
+
+/* Make the layout responsive */
+@media (max-width: 1024px) {
+    .game-layout {
+        flex-direction: column;
+    }
+    
+    .leaderboard-section {
+        width: 100%;
+        position: static;
+    }
+}
+
+/* Add styles for visible file input */
+#file-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #f8f9fa;
+    transition: border-color 0.3s ease;
+}
+
+#file-input:hover {
+    border-color: #4CAF50;
+}
+
+#file-input::-webkit-file-upload-button {
+    visibility: hidden;
+    display: none;
+}
+
+#file-input::before {
+    content: 'Choose Image';
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 4px;
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+#file-input:hover::before {
+    background-color: #45a049;
+}
+
+#preview-container {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.file-name {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+/* Update drop zone styles */
+.drop-zone {
+    margin-top: 1rem;
+    height: 120px;
+    border: 2px dashed #ccc;
+}
+
+.drop-zone-text {
+    font-size: 0.9rem;
+    color: #666;
+}
