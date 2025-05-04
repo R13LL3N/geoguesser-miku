@@ -13,11 +13,24 @@ async function connectToDatabase() {
         return cachedDb;
     }
 
+    // Parse the MongoDB connection string to modify it
+    const connectionParts = process.env.MONGODB_URI.split('?');
+    const baseUri = connectionParts[0];
+    const queryParams = connectionParts.length > 1 ? connectionParts[1] : '';
+    
+    // Add explicit SSL options to the connection string
+    const modifiedUri = `${baseUri}?ssl=true&sslValidate=false${queryParams ? '&' + queryParams : ''}`;
+    
+    console.log('Using modified connection string with SSL options');
+
     // Connect to the MongoDB database
-    const client = new MongoClient(uri, {
+    const client = new MongoClient(modifiedUri, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000 // 5 second timeout
+        serverSelectionTimeoutMS: 5000, // 5 second timeout
+        ssl: true,
+        sslValidate: false,
+        directConnection: true
     });
 
     try {

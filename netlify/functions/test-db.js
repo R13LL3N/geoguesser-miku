@@ -23,12 +23,26 @@ exports.handler = async function(event, context) {
       uri.replace(/:([^@]+)@/, ':******@') : 
       'MONGODB_URI is not defined');
 
-    // Try to connect to MongoDB
+    // Try to connect to MongoDB with modified options for Netlify environment
     console.log('Attempting to connect to MongoDB...');
-    const client = new MongoClient(process.env.MONGODB_URI, {
+    
+    // Parse the MongoDB connection string to modify it
+    const connectionParts = process.env.MONGODB_URI.split('?');
+    const baseUri = connectionParts[0];
+    const queryParams = connectionParts.length > 1 ? connectionParts[1] : '';
+    
+    // Add explicit SSL options to the connection string
+    const modifiedUri = `${baseUri}?ssl=true&sslValidate=false${queryParams ? '&' + queryParams : ''}`;
+    
+    console.log('Using modified connection string with SSL options');
+    
+    const client = new MongoClient(modifiedUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000 // 5 second timeout
+      serverSelectionTimeoutMS: 5000, // 5 second timeout
+      ssl: true,
+      sslValidate: false,
+      directConnection: true
     });
 
     await client.connect();
@@ -57,7 +71,8 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({
         error: 'Database connection error',
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
+        mongodb_uri_present: !!process.env.MONGODB_URI
       })
     };
   }
