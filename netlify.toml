@@ -11,13 +11,13 @@
 
 [[redirects]]
   from = "/api/login"
-  to = "/.netlify/functions/auth-blobs"
+  to = "/.netlify/functions/auth-debug"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/signup"
-  to = "/.netlify/functions/auth-blobs"
+  to = "/.netlify/functions/auth-debug"
   status = 200
   force = true
 
