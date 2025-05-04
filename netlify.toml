@@ -22,6 +22,24 @@
   force = true
 
 [[redirects]]
+  from = "/api/upload-image"
+  to = "/.netlify/functions/upload-image"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/get-random-image"
+  to = "/.netlify/functions/game"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/update-score"
+  to = "/.netlify/functions/game"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/simple-login"
   to = "/.netlify/functions/auth-simple"
   status = 200

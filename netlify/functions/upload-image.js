@@ -1,22 +1,21 @@
-const { put } = require('@netlify/blobs');
+const { getStore } = require('@netlify/blobs');
 const jwt = require('jsonwebtoken');
-const { MongoClient } = require('mongodb');
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const MONGODB_URI = process.env.MONGODB_URI;
-
-const client = new MongoClient(MONGODB_URI);
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development-only';
 
 // Verify JWT token
 const verifyToken = (token) => {
     try {
         return jwt.verify(token, JWT_SECRET);
-    } catch {
+    } catch (error) {
+        console.error('Token verification error:', error);
         return null;
     }
 };
 
 exports.handler = async function(event, context) {
+    console.log('Upload Image Function Invoked');
+    
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -24,6 +23,7 @@ exports.handler = async function(event, context) {
     };
 
     if (event.httpMethod === 'OPTIONS') {
+        console.log('Handling OPTIONS request');
         return { statusCode: 200, headers };
     }
 
@@ -56,42 +56,50 @@ exports.handler = async function(event, context) {
     }
 
     try {
-        const formData = new FormData(event);
-        const file = formData.get('file');
-        const metadata = JSON.parse(formData.get('metadata'));
+        // Parse request body
+        const body = JSON.parse(event.body);
+        const { imageData, metadata } = body;
 
-        if (!file || !metadata) {
+        if (!imageData || !metadata) {
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'Missing file or metadata' })
+                body: JSON.stringify({ error: 'Missing image data or metadata' })
             };
         }
 
-        // Upload to Netlify Blob Storage
-        const filename = `${Date.now()}-${file.name}`;
-        await put(`images/${filename}`, file, {
-            contentType: file.type,
-            metadata
-        });
+        // Get the blob stores
+        const imageStore = getStore({ name: 'images' });
+        const metadataStore = getStore({ name: 'image-metadata' });
 
-        // Store metadata in MongoDB
-        await client.connect();
-        const db = client.db('geoguesser-miku');
-        await db.collection('images').insertOne({
-            filename,
-            url: `/.netlify/blobs/images/${filename}`,
-            ...metadata,
-            uploadedBy: userData.userId,
-            createdAt: new Date()
-        });
+        // Generate a unique ID for the image
+        const imageId = `${Date.now()}-${metadata.location || 'unknown'}-${userData.email}`;
+        
+        // Store the image data
+        await imageStore.set(imageId, imageData);
+        
+        // Store the metadata separately
+        const imageMetadata = {
+            imageId,
+            location: metadata.location,
+            description: metadata.description,
+            coordinates: metadata.coordinates,
+            uploadedBy: userData.email,
+            username: userData.username,
+            createdAt: new Date().toISOString()
+        };
+        
+        await metadataStore.set(imageId, imageMetadata);
 
+        console.log('Image uploaded successfully:', imageId);
+        
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 message: 'Upload successful',
-                filename
+                imageId,
+                metadata: imageMetadata
             })
         };
     } catch (error) {
@@ -99,9 +107,10 @@ exports.handler = async function(event, context) {
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Upload failed' })
+            body: JSON.stringify({ 
+                error: 'Upload failed',
+                message: error.message 
+            })
         };
-    } finally {
-        await client.close();
     }
 };
