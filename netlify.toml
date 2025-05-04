@@ -4,8 +4,20 @@
   publish = "."
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/auth"
+  from = "/api/db-test"
+  to = "/.netlify/functions/test-db"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/login"
+  to = "/.netlify/functions/auth-simple"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/signup"
+  to = "/.netlify/functions/auth-simple"
   status = 200
   force = true
 
