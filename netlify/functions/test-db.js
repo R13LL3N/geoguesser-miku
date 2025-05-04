@@ -26,23 +26,12 @@ exports.handler = async function(event, context) {
     // Try to connect to MongoDB with modified options for Netlify environment
     console.log('Attempting to connect to MongoDB...');
     
-    // Parse the MongoDB connection string to modify it
-    const connectionParts = process.env.MONGODB_URI.split('?');
-    const baseUri = connectionParts[0];
-    const queryParams = connectionParts.length > 1 ? connectionParts[1] : '';
-    
-    // Add explicit SSL options to the connection string
-    const modifiedUri = `${baseUri}?ssl=true&sslValidate=false${queryParams ? '&' + queryParams : ''}`;
-    
-    console.log('Using modified connection string with SSL options');
-    
-    const client = new MongoClient(modifiedUri, {
+    // For newer MongoDB driver versions, we need to use the connection string directly
+    // without modifying the options in the client constructor
+    const client = new MongoClient(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // 5 second timeout
-      ssl: true,
-      sslValidate: false,
-      directConnection: true
+      serverSelectionTimeoutMS: 10000 // 10 second timeout
     });
 
     await client.connect();
