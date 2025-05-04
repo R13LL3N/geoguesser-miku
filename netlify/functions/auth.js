@@ -38,9 +38,12 @@ exports.handler = async function(event, context) {
         
         const { path } = event;
         const body = JSON.parse(event.body);
+        
+        console.log('Path:', path);
+        console.log('Request body:', body);
 
         // Handle login
-        if (path === '/login') {
+        if (path === '/api/login' || path === '/login') {
             const user = await users.findOne({ email: body.email });
             
             if (!user || !await bcrypt.compare(body.password, user.password)) {
@@ -68,7 +71,7 @@ exports.handler = async function(event, context) {
         }
 
         // Handle signup
-        if (path === '/signup') {
+        if (path === '/api/signup' || path === '/signup') {
             // Check if user exists
             const existingUser = await users.findOne({
                 $or: [
@@ -104,7 +107,7 @@ exports.handler = async function(event, context) {
         return {
             statusCode: 404,
             headers,
-            body: JSON.stringify({ error: 'Route not found' })
+            body: JSON.stringify({ error: 'Route not found', path: path })
         };
 
     } catch (error) {
@@ -112,7 +115,7 @@ exports.handler = async function(event, context) {
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Internal server error' })
+            body: JSON.stringify({ error: 'Internal server error', message: error.message })
         };
     } finally {
         await client.close();
