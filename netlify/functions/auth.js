@@ -5,13 +5,40 @@ const { MongoClient } = require('mongodb');
 const uri = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const client = new MongoClient(uri);
+// Create a MongoDB client outside the handler for connection reuse
+let cachedDb = null;
+
+async function connectToDatabase() {
+    if (cachedDb) {
+        return cachedDb;
+    }
+
+    // Connect to the MongoDB database
+    const client = new MongoClient(uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000 // 5 second timeout
+    });
+
+    try {
+        await client.connect();
+        const db = client.db('geoguesser-miku');
+        cachedDb = { client, db };
+        return cachedDb;
+    } catch (error) {
+        console.error('MongoDB connection error:', error);
+        throw error;
+    }
+}
 
 exports.handler = async function(event, context) {
+    // Tell Netlify not to close the connection immediately
+    context.callbackWaitsForEmptyEventLoop = false;
+    
     // Enable CORS
     const headers = {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
@@ -32,15 +59,14 @@ exports.handler = async function(event, context) {
     }
 
     try {
-        await client.connect();
-        const db = client.db('geoguesser-miku');
+        const { db } = await connectToDatabase();
         const users = db.collection('users');
         
         const { path } = event;
         const body = JSON.parse(event.body);
         
         console.log('Path:', path);
-        console.log('Request body:', body);
+        console.log('Request body:', JSON.stringify(body));
 
         // Handle login
         if (path === '/api/login' || path === '/login') {
@@ -115,9 +141,11 @@ exports.handler = async function(event, context) {
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Internal server error', message: error.message })
+            body: JSON.stringify({ 
+                error: 'Internal server error', 
+                message: error.message,
+                stack: error.stack
+            })
         };
-    } finally {
-        await client.close();
     }
 };
