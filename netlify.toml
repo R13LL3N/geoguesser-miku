@@ -11,13 +11,13 @@
 
 [[redirects]]
   from = "/api/login"
-  to = "/.netlify/functions/auth-robust"
+  to = "/.netlify/functions/auth-simple-v2"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/signup"
-  to = "/.netlify/functions/auth-robust"
+  to = "/.netlify/functions/auth-simple-v2"
   status = 200
   force = true
 
@@ -36,18 +36,6 @@
 [[redirects]]
   from = "/api/update-score"
   to = "/.netlify/functions/game"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/simple-login"
-  to = "/.netlify/functions/auth-simple"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/simple-signup"
-  to = "/.netlify/functions/auth-simple"
   status = 200
   force = true
 
