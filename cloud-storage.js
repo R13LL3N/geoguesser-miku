@@ -11,6 +11,9 @@ class CloudStorage {
             throw new Error('Authentication required');
         }
 
+        // Validate the file before uploading
+        this.validateFile(file);
+
         const formData = new FormData();
         formData.append('file', file);
         formData.append('metadata', JSON.stringify(metadata));
@@ -143,6 +146,12 @@ if (document.getElementById('submit-form')) {
             return;
         }
 
+        // Show loading indicator
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.textContent = 'Uploading...';
+
         try {
             const metadata = {
                 country,
@@ -157,7 +166,10 @@ if (document.getElementById('submit-form')) {
             preview.classList.add('hidden');
             fileName.textContent = '';
         } catch (error) {
-            alert(error.message);
+            alert(`Upload failed: ${error.message}`);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
         }
     });
 

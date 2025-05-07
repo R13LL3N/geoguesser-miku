@@ -5,18 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Miku - Guess this Miku Country</title>
     <link rel="stylesheet" href="./style.css">
-    <!-- Load dependencies first -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Initialize supabase -->
-    <script>
-        window.supabaseUrl = 'https://fwrgisesmzdwclaclptu.supabase.co';
-        window.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3cmdpc2VzbXpkd2NsYWNscHR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3MjM2OTcsImV4cCI6MjA2MTI5OTY5N30.pJ_E7BXerv9nuXDd7MnHt4ncQ0CG2qHlD0baugQoiHo';
-        window.supabaseClient = supabase.createClient(window.supabaseUrl, window.supabaseKey);
-    </script>
-    <!-- Load our scripts after Supabase is initialized -->
+    <!-- Load our scripts -->
     <script src="./cloud-storage.js"></script>
     <script src="./auth-check.js"></script>
-    <script src="./submit.js" defer></script>
 </head>
 <body>
     <header>

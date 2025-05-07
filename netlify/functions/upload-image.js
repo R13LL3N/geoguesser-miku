@@ -1,7 +1,10 @@
 const { getStore } = require('@netlify/blobs');
 const jwt = require('jsonwebtoken');
+const busboy = require('busboy');
+const { MongoClient } = require('mongodb');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development-only';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Verify JWT token
 const verifyToken = (token) => {
@@ -11,6 +14,83 @@ const verifyToken = (token) => {
         console.error('Token verification error:', error);
         return null;
     }
+};
+
+// Parse multipart form data
+const parseMultipartForm = (event) => {
+    return new Promise((resolve, reject) => {
+        const fields = {};
+        let fileBuffer = null;
+        let fileName = '';
+        let fileType = '';
+
+        // Create busboy instance
+        const bb = busboy({ 
+            headers: event.headers,
+            limits: {
+                fileSize: 5 * 1024 * 1024 // 5MB
+            }
+        });
+
+        // Handle file upload
+        bb.on('file', (name, file, info) => {
+            const { filename, encoding, mimeType } = info;
+            console.log(`File [${name}]: filename: ${filename}, encoding: ${encoding}, mimeType: ${mimeType}`);
+            
+            // Only accept image files
+            if (!mimeType.startsWith('image/')) {
+                return reject(new Error('Only image files are allowed'));
+            }
+            
+            fileName = filename;
+            fileType = mimeType;
+            
+            const chunks = [];
+            file.on('data', (data) => {
+                chunks.push(data);
+            });
+            file.on('end', () => {
+                fileBuffer = Buffer.concat(chunks);
+                console.log(`File [${name}] done: ${fileBuffer.length} bytes`);
+            });
+        });
+
+        // Handle regular form fields
+        bb.on('field', (name, val) => {
+            console.log(`Field [${name}]: value: ${val}`);
+            if (name === 'metadata') {
+                try {
+                    fields[name] = JSON.parse(val);
+                } catch (e) {
+                    fields[name] = val;
+                }
+            } else {
+                fields[name] = val;
+            }
+        });
+
+        // Handle completion
+        bb.on('finish', () => {
+            resolve({
+                fields,
+                file: fileBuffer ? {
+                    content: fileBuffer,
+                    name: fileName,
+                    type: fileType
+                } : null
+            });
+        });
+
+        // Handle error
+        bb.on('error', (error) => {
+            reject(error);
+        });
+
+        // Pipe the request to busboy
+        const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
+        bb.write(buffer);
+        bb.end();
+    });
 };
 
 exports.handler = async function(event, context) {
@@ -56,11 +136,10 @@ exports.handler = async function(event, context) {
     }
 
     try {
-        // Parse request body
-        const body = JSON.parse(event.body);
-        const { imageData, metadata } = body;
+        // Parse the multipart form data
+        const formData = await parseMultipartForm(event);
 
-        if (!imageData || !metadata) {
+        if (!formData.file || !formData.fields.metadata) {
             return {
                 statusCode: 400,
                 headers,
@@ -68,28 +147,43 @@ exports.handler = async function(event, context) {
             };
         }
 
-        // Get the blob stores
-        const imageStore = getStore({ name: 'images' });
-        const metadataStore = getStore({ name: 'image-metadata' });
-
+        // Get the blob store
+        const imageStore = getStore({ name: 'miku-images' });
+        
         // Generate a unique ID for the image
-        const imageId = `${Date.now()}-${metadata.location || 'unknown'}-${userData.email}`;
+        const imageId = `${Date.now()}-${formData.fields.metadata.country || 'unknown'}-${userData.username}`;
         
-        // Store the image data
-        await imageStore.set(imageId, imageData);
-        
-        // Store the metadata separately
-        const imageMetadata = {
+        // Store the image in Netlify Blobs
+        await imageStore.set(imageId, formData.file.content, {
+            contentType: formData.file.type,
+            metadata: {
+                fileName: formData.file.name
+            }
+        });
+
+        // Connect to MongoDB for storing metadata
+        const mongoClient = new MongoClient(MONGODB_URI);
+        await mongoClient.connect();
+        const db = mongoClient.db('miku-geoguesser');
+        const mikuCollection = db.collection('miku-images');
+
+        // Prepare metadata for MongoDB
+        const metadata = {
             imageId,
-            location: metadata.location,
-            description: metadata.description,
-            coordinates: metadata.coordinates,
-            uploadedBy: userData.email,
-            username: userData.username,
-            createdAt: new Date().toISOString()
+            fileName: formData.file.name,
+            fileType: formData.file.type,
+            country: formData.fields.metadata.country,
+            isOwnWork: formData.fields.metadata.isOwnWork,
+            artistCredit: formData.fields.metadata.artistCredit,
+            submittedBy: userData.username,
+            createdAt: new Date()
         };
+
+        // Store metadata in MongoDB
+        await mikuCollection.insertOne(metadata);
         
-        await metadataStore.set(imageId, imageMetadata);
+        // Close MongoDB connection
+        await mongoClient.close();
 
         console.log('Image uploaded successfully:', imageId);
         
@@ -99,7 +193,7 @@ exports.handler = async function(event, context) {
             body: JSON.stringify({
                 message: 'Upload successful',
                 imageId,
-                metadata: imageMetadata
+                metadata
             })
         };
     } catch (error) {

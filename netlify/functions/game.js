@@ -1,7 +1,9 @@
 const { getStore } = require('@netlify/blobs');
 const jwt = require('jsonwebtoken');
+const { MongoClient } = require('mongodb');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development-only';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Verify JWT token
 const verifyToken = (token) => {
@@ -36,21 +38,25 @@ exports.handler = async function(event, context) {
     try {
         console.log('Request path:', event.path);
         
-        // Get blob stores
-        const imageMetadataStore = getStore({ name: 'image-metadata' });
-        const imageStore = getStore({ name: 'images' });
-        const userStore = getStore({ name: 'users' });
-        const scoreStore = getStore({ name: 'scores' });
+        // Connect to MongoDB
+        const mongoClient = new MongoClient(MONGODB_URI);
+        await mongoClient.connect();
+        const db = mongoClient.db('miku-geoguesser');
+        
+        // Get blob store for images
+        const imageStore = getStore({ name: 'miku-images' });
         
         // Get random image
-        if (event.path === '/get-random-image' || event.path.includes('/get-random-image')) {
+        if (event.path.includes('/get-random-image')) {
             console.log('Getting random image');
             
-            // List all metadata keys
-            const metadataList = await imageMetadataStore.list();
+            // Get a random image from MongoDB
+            const mikuCollection = db.collection('miku-images');
+            const count = await mikuCollection.countDocuments();
             
-            if (!metadataList || metadataList.length === 0) {
-                console.log('No images found');
+            if (count === 0) {
+                console.log('No images found in MongoDB');
+                await mongoClient.close();
                 return {
                     statusCode: 404,
                     headers,
@@ -58,16 +64,32 @@ exports.handler = async function(event, context) {
                 };
             }
             
-            // Pick a random key
-            const randomKey = getRandomItem(metadataList);
-            console.log('Selected random image:', randomKey);
+            // Get a random image document
+            const randomImage = await mikuCollection.aggregate([
+                { $sample: { size: 1 } }
+            ]).toArray();
             
-            // Get the metadata and image data
-            const metadata = await imageMetadataStore.get(randomKey);
-            const imageData = await imageStore.get(randomKey);
+            if (!randomImage || randomImage.length === 0) {
+                console.log('Failed to retrieve random image');
+                await mongoClient.close();
+                return {
+                    statusCode: 404,
+                    headers,
+                    body: JSON.stringify({ error: 'Failed to retrieve image' })
+                };
+            }
             
-            if (!metadata || !imageData) {
-                console.log('Image or metadata missing for key:', randomKey);
+            const imageMetadata = randomImage[0];
+            console.log('Selected random image:', imageMetadata.imageId);
+            
+            // Get the image data from Netlify Blobs
+            const imageData = await imageStore.get(imageMetadata.imageId, {
+                type: 'arrayBuffer'
+            });
+            
+            if (!imageData) {
+                console.log('Image not found in blob storage for ID:', imageMetadata.imageId);
+                await mongoClient.close();
                 return {
                     statusCode: 404,
                     headers,
@@ -75,26 +97,34 @@ exports.handler = async function(event, context) {
                 };
             }
             
-            // Don't send the exact coordinates in the initial response
-            const { coordinates, ...safeMetadata } = metadata;
+            // Convert the array buffer to base64 for sending to client
+            const base64Image = Buffer.from(imageData).toString('base64');
+            const dataUrl = `data:${imageMetadata.fileType};base64,${base64Image}`;
+            
+            await mongoClient.close();
             
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
-                    imageId: randomKey,
-                    imageData,
-                    metadata: safeMetadata
+                    imageId: imageMetadata.imageId,
+                    imageData: dataUrl,
+                    metadata: {
+                        country: imageMetadata.country,
+                        artistCredit: imageMetadata.artistCredit,
+                        submittedBy: imageMetadata.submittedBy
+                    }
                 })
             };
         }
 
         // Update user score
-        if (event.path === '/update-score' || event.path.includes('/update-score')) {
+        if (event.path.includes('/update-score')) {
             console.log('Updating user score');
             
             const authHeader = event.headers.authorization;
             if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                await mongoClient.close();
                 return {
                     statusCode: 401,
                     headers,
@@ -105,6 +135,7 @@ exports.handler = async function(event, context) {
             const token = authHeader.split(' ')[1];
             const userData = verifyToken(token);
             if (!userData) {
+                await mongoClient.close();
                 return {
                     statusCode: 401,
                     headers,
@@ -113,72 +144,74 @@ exports.handler = async function(event, context) {
             }
 
             const { score, totalGuesses, imageId } = JSON.parse(event.body);
-            const email = userData.email;
+            const username = userData.username;
+            
+            // Get user collection
+            const userCollection = db.collection('users');
             
             // Get current user data
-            let user;
-            try {
-                user = await userStore.get(email);
-            } catch (error) {
-                console.log('User not found, creating score record');
+            let user = await userCollection.findOne({ username });
+            
+            if (!user) {
+                console.log('User not found, creating user record');
                 user = {
-                    email,
-                    username: userData.username,
+                    username,
+                    email: userData.email,
                     score: 0,
                     totalGuesses: 0,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date()
                 };
             }
             
             // Update score
-            const updatedUser = {
-                ...user,
-                score: Number(score) || 0,
-                totalGuesses: Number(totalGuesses) || 0,
-                lastUpdated: new Date().toISOString()
-            };
+            const updatedScore = Number(user.score || 0) + Number(score || 0);
+            const updatedGuesses = Number(user.totalGuesses || 0) + Number(totalGuesses || 0);
             
             // Save updated user data
-            await userStore.set(email, updatedUser);
+            await userCollection.updateOne(
+                { username },
+                { 
+                    $set: {
+                        score: updatedScore,
+                        totalGuesses: updatedGuesses,
+                        lastUpdated: new Date()
+                    },
+                    $setOnInsert: {
+                        username,
+                        email: userData.email,
+                        createdAt: new Date()
+                    }
+                },
+                { upsert: true }
+            );
             
             // Record this score event
-            const scoreEvent = {
-                email,
-                username: userData.username,
+            const scoreCollection = db.collection('scores');
+            await scoreCollection.insertOne({
+                username,
+                email: userData.email,
                 score,
                 imageId,
-                timestamp: new Date().toISOString()
-            };
-            
-            const scoreId = `${Date.now()}-${email}`;
-            await scoreStore.set(scoreId, scoreEvent);
+                timestamp: new Date()
+            });
             
             // Get all users for leaderboard
-            const leaderboard = [];
-            const userKeys = await userStore.list();
+            const leaderboard = await userCollection
+                .find({}, { projection: { username: 1, score: 1, totalGuesses: 1, _id: 0 } })
+                .sort({ score: -1 })
+                .limit(10)
+                .toArray();
             
-            for (const key of userKeys) {
-                const userData = await userStore.get(key);
-                if (userData && userData.score !== undefined) {
-                    leaderboard.push({
-                        username: userData.username,
-                        score: userData.score,
-                        totalGuesses: userData.totalGuesses
-                    });
-                }
-            }
+            await mongoClient.close();
             
-            // Sort leaderboard by score (descending)
-            leaderboard.sort((a, b) => b.score - a.score);
-            
-            // Return top 10
             return {
                 statusCode: 200,
                 headers,
-                body: JSON.stringify(leaderboard.slice(0, 10))
+                body: JSON.stringify(leaderboard)
             };
         }
 
+        await mongoClient.close();
         console.log('Route not found:', event.path);
         return {
             statusCode: 404,
